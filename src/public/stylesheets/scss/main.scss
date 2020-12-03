@@ -1,0 +1,31 @@
+@import 'fonts';
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: #fff;
+}
+
+.song {
+  border: 1px solid #333;
+  padding: 10px;
+
+  .title {
+    font-weight: bold;
+    font-size: 2rem;
+    margin: 0 0 10 0px;
+
+  }
+
+  .byline {
+    font-size: 1rem;
+  }
+
+  .lyrics {
+    font-siae:0.8rem;
+    font-style: italic;
+    margin: 10px 0 0 10px;
+  }
+}
