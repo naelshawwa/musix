@@ -23,7 +23,8 @@ router.get('/search', async (req, res, next) => {
             callback: 'callback',
 
             q_lyrics: req.query.search,
-            quorum_factor: 1
+            quorum_factor: 1,
+            page_size: 2
       }}
     );
 
