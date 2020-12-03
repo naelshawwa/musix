@@ -13,8 +13,9 @@ class Welcome extends Component {
     }
   }
 
+
   /**
-   *
+   * Query for tracks
    */
   fetchTracks = () => {
     axios.get('/api/musix/search', {params: {search: "sunshine"}}).then((response) => {
@@ -33,6 +34,11 @@ class Welcome extends Component {
     })
   }
 
+  /**
+   * Query for lyrics for provided trackId
+   * @param trackId
+   * @returns {Promise<AxiosResponse<any>>}
+   */
   fetchLyrics = ({trackId}) => {
     return axios.get( '/api/musix/lyrics', {params: {trackId: trackId}}).then( response => {
       let tracks = this.state.track_list;
