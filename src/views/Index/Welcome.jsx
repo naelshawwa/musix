@@ -9,7 +9,8 @@ class Welcome extends Component {
   constructor (props) {
     super(props)
     this.state = {
-      track_list: [],
+      trackList: [],
+      trackIds:[],
       category: "Toronto",
       timer: 10
     }
@@ -26,24 +27,31 @@ class Welcome extends Component {
    * Query for tracks
    */
   fetchTracks = () => {
-    axios.get('/api/musix/search', {params: {search: this.state.category}}).then((response) => {
+    axios.post('/api/musix/search', {
+      search: this.state.category,
+      trackIds: this.state.trackIds
+    },{
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    }).then((response) => {
 
-      if(this.state.track_list.length == 0 ){
+      if(this.state.trackList.length == 0 ){
         this.setState({
-          track_list: response.data.message.body.track_list
+          trackList: response.data.message.body.track_list
         });
       }else{
-        let currentTracks = this.state.track_list;
+        let currentTracks = this.state.trackList;
         currentTracks.push(...response.data.message.body.track_list);
         this.setState({
-          track_list: currentTracks
+          trackList: currentTracks
         });
       }
 
 
       this.startTimer();
 
-      this.state.track_list.map( t => {
+      this.state.trackList.map( t => {
         this.fetchLyrics({
           trackId: t.track.track_id
         });
@@ -61,7 +69,7 @@ class Welcome extends Component {
    */
   fetchLyrics = ({trackId}) => {
     return axios.get( '/api/musix/lyrics', {params: {trackId: trackId}}).then( response => {
-      let tracks = this.state.track_list;
+      let tracks = this.state.trackList;
       let index = tracks.findIndex( t => t.track.track_id === trackId);
       console.log("Index",index);
       let singleTrack = {...tracks[index]};
@@ -70,10 +78,15 @@ class Welcome extends Component {
       tracks[index] = singleTrack;
 
       this.setState({
-        track_list: tracks
+        trackList: tracks
       });
 
-      console.log(this.state.track_list);
+      let trackIds = this.state.trackIds;
+      trackIds.push(trackId);
+      this.setState({
+        tracks: tracks
+      })
+
     }).catch( error => {
       console.log(error);
     })
@@ -82,7 +95,6 @@ class Welcome extends Component {
 
   countDown = () => {
 
-    console.log("Timer", this.state.timer);
     if(this.state.timer > 0){
       this.setState({
         timer: this.state.timer - 1
@@ -110,7 +122,7 @@ class Welcome extends Component {
    * pops the first track in the play list, queues up query for next tracks
    */
   popPlayList = () => {
-    let newTrackList = this.state.track_list;
+    let newTrackList = this.state.trackList;
     let oldTrack = newTrackList.shift();
     let oldLyrics = oldTrack.track.lyrics.lyrics_body;
 
@@ -124,7 +136,7 @@ class Welcome extends Component {
 
 
     this.setState({
-      track_list: newTrackList,
+      trackList: newTrackList,
       category: newQuery.join(" ")
     });
 
@@ -147,26 +159,28 @@ class Welcome extends Component {
   render () {
     return (
         <div>
-          <h3>Category Search:  <input className="category-search" type="text" value={this.state.category} onChange={this.handleCategoryChange}/> <input type="button" onClick={this.fetchTracks} value="Search"/> </h3>
-          {this.state.track_list.map( (item, index) => {
-            return (
-                <div className="song" key={item.track.track_id}>
-                  <div className="title">{item.track.album_name}</div>
-                  <div className="byline"> by {item.track.artist_name}</div>
+          <h3>Category Search:  <input className="category-search" type="text" value={this.state.category} onChange={this.handleCategoryChange}/> <input className="button" type="button" onClick={this.fetchTracks} value="Search"/> </h3>
+          <div className="song-grid">
+            {this.state.trackList.map( (item, index) => {
+              return (
+                    <div className={`song ${index == 0 ? "first-song" : ""}`} key={item.track.track_id}>
+                      <div className="title">{item.track.album_name}</div>
+                      <div className="byline"> by {item.track.artist_name}</div>
 
-                  {index == 0 &&
-                    <div className="timer">
-                      {this.state.timer}
+                      {index == 0 &&
+                        <div className="timer">
+                          {this.state.timer}
+                        </div>
+                      }
+                      {item.track.lyrics &&
+                        <div className="lyrics">
+                          {item.track.lyrics.lyrics_body}
+                        </div>
+                      }
                     </div>
-                  }
-                  {item.track.lyrics &&
-                    <div className="lyrics">
-                      {item.track.lyrics.lyrics_body}
-                    </div>
-                  }
-                </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
     )
   }

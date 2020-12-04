@@ -9,32 +9,41 @@ const appConfig = require('../app.config.js')
 
 const MUSIX_GET_TRACKS = 'https://api.musixmatch.com/ws/1.1/track.search';
 const MUSIX_GET_LYRICS = 'https://api.musixmatch.com/ws/1.1/track.lyrics.get';
-const MUSIX_API_KEY = '3eef0b309492c4f1c81a4bb76e5b6ee7';
-const MUSIX_FORMAT = 'jsonp'; //not sure why Musix does not like plain old json...
+const MUSIX_API_KEY = '12832752fc79e94b205e24b1a5bf7a4d';
+const MUSIX_FORMAT = 'json'; //not sure why Musix does not like plain old json...
 
-router.get('/search', async (req, res, next) => {
+router.post('/search', async (req, res, next) => {
 
-  console.log("Query Musix for: ", req.query.search)
+  console.log("Query Musix for: ", req.body)
+
+    const query = req.body.search;
+    const tracks = req.body.trackIds;
+
+    console.log("Query is: ", query);
 
   try {
     const response = await axios.get(MUSIX_GET_TRACKS, {params: {
         apikey: MUSIX_API_KEY,
         format: MUSIX_FORMAT,
-            callback: 'callback',
-
-            q_lyrics: req.query.search,
-            quorum_factor: 1,
-            page_size: 2
+            q_lyrics: query,
+            f_has_lyrics: true,
+            f_lyrics_language: 'en',
+            quorum_factor: 0.5,
+            page_size: 20
       }}
     );
 
-      //really bad -- but what the hell..
-      const jsonResponse = eval(response.data);
-      console.log(jsonResponse);
-      res.send(jsonResponse);
+      //filter tracks based on past ids and return the remaining first two. We fetch 20 from Musix to reduce chance of returning no tracks because of too much filtering
+      console.log("Filter tracks: ", tracks);
+      console.log("Returned tracks");
+      response.data.message.body.track_list.map( t => console.log(t.track_id));
+      let filteredTracks = response.data.message.body.track_list.filter( t => !tracks.includes(t.track_id));
+      filteredTracks.map( t => console.log(t.track_id));
+      response.data.message.body.track_list = filteredTracks.slice(0,2);
+      res.send(response.data);
 
   } catch (error) {
-      console.log(error);
+      console.log("Error", error);
     res.send({message: error});
   }
 
@@ -53,9 +62,12 @@ router.get('/lyrics', async (req, res, next) =>{
       }}
     );
 
-      //really bad -- but what the hell..
-      const jsonResponse = eval(response.data);
-      res.send(jsonResponse);
+      if(!response.data.message.body.lyrics){
+          response.body.body.lyrics = {
+              lyrics_body: "No Lyrics"
+          }
+      }
+      res.send(response.data);
 
   } catch (error) {
       console.log(error);
@@ -64,10 +76,4 @@ router.get('/lyrics', async (req, res, next) =>{
   }
 
 });
-
-//need that json... and musix seems to only send back responses when format=jsonp
-function callback(json){
-    console.log("Callback", json);
-    return json;
-}
 module.exports = router
