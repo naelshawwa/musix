@@ -9,18 +9,20 @@ const appConfig = require('../app.config.js')
 
 const MUSIX_GET_TRACKS = 'https://api.musixmatch.com/ws/1.1/track.search';
 const MUSIX_GET_LYRICS = 'https://api.musixmatch.com/ws/1.1/track.lyrics.get';
-const MUSIX_API_KEY = '12832752fc79e94b205e24b1a5bf7a4d';
-const MUSIX_FORMAT = 'json'; //not sure why Musix does not like plain old json...
+const MUSIX_API_KEY = '7d45be2f57b5e4514d54925458c53ec5';
+const MUSIX_FORMAT = 'json';
+const PAGE_SIZE = 30;
+
 
 router.post('/search', async (req, res, next) => {
 
-  console.log("Query Musix for: ", req.body)
-
     const query = req.body.search;
     const tracks = req.body.trackIds;
+    const numberOfSongs = req.body.numberOfSongs;
 
-    console.log("Query is: ", query);
-
+    console.log("Query", {
+        query, tracks, numberOfSongs
+    });
   try {
     const response = await axios.get(MUSIX_GET_TRACKS, {params: {
         apikey: MUSIX_API_KEY,
@@ -28,30 +30,36 @@ router.post('/search', async (req, res, next) => {
             q_lyrics: query,
             f_has_lyrics: true,
             f_lyrics_language: 'en',
-            quorum_factor: 0.5,
-            page_size: 20
+            quorum_factor: 0.6,
+            page_size: PAGE_SIZE
       }}
     );
 
       //filter tracks based on past ids and return the remaining first two. We fetch 20 from Musix to reduce chance of returning no tracks because of too much filtering
-      console.log("Filter tracks: ", tracks);
-      console.log("Returned tracks");
-      response.data.message.body.track_list.map( t => console.log(t.track_id));
-      let filteredTracks = response.data.message.body.track_list.filter( t => !tracks.includes(t.track_id));
-      filteredTracks.map( t => console.log(t.track_id));
-      response.data.message.body.track_list = filteredTracks.slice(0,2);
-      res.send(response.data);
+      if(response.data.message.body.track_list){
+          console.log(`Received ${response.data.message.body.track_list.length} tracks`);
+          let filteredTracks = response.data.message.body.track_list.filter( t => !tracks.includes(t.track_id));
+          console.log(`Filtered tracks ${filteredTracks.length}`)
+          let randomIndex = Math.floor(Math.random() * ((PAGE_SIZE-1)/2)); //pick a song in the middle
+
+          response.data.message.body.track_list = filteredTracks.slice(randomIndex,randomIndex+numberOfSongs);
+          console.log(`Returning ${numberOfSongs} songs`);
+          res.send(response.data);
+      }else{
+          res.send({
+              message: "No tracks :("
+          })
+      }
+
 
   } catch (error) {
-      console.log("Error", error);
+      console.log("Search Error", error);
     res.send({message: error});
   }
 
 })
 
 router.get('/lyrics', async (req, res, next) =>{
-
-  console.log("Query Musix for Track Id : ", req.query.track_id)
 
   try{
     const response = await axios.get(MUSIX_GET_LYRICS, {params: {
@@ -70,7 +78,7 @@ router.get('/lyrics', async (req, res, next) =>{
       res.send(response.data);
 
   } catch (error) {
-      console.log(error);
+      console.log("Lyrics Error",error);
 
       res.send({message: "error"});
   }

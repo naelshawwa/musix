@@ -26,10 +26,13 @@ class Welcome extends Component {
   /**
    * Query for tracks
    */
-  fetchTracks = () => {
+  fetchTracks = (numberOfSongs = 2) => {
+
+    console.log(`Requesting ${numberOfSongs} songs`);
     axios.post('/api/musix/search', {
       search: this.state.category,
-      trackIds: this.state.trackIds
+      trackIds: this.state.trackIds,
+      numberOfSongs: numberOfSongs
     },{
       headers: {
         'Content-Type': 'application/json'
@@ -52,9 +55,12 @@ class Welcome extends Component {
       this.startTimer();
 
       this.state.trackList.map( t => {
-        this.fetchLyrics({
-          trackId: t.track.track_id
-        });
+        if(!t.track.lyrics){ //if we don't have lyrics get lyrics for this item
+          this.fetchLyrics({
+            trackId: t.track.track_id
+          });
+        }
+
       })
 
     }).catch((error) => {
@@ -140,11 +146,19 @@ class Welcome extends Component {
       category: newQuery.join(" ")
     });
 
-    this.fetchTracks();
+    this.fetchTracks(1);
   }
 
+  /**
+   * Return random word from lyrics
+   * @param lyrics
+   * @returns {*|string}
+   */
   getRandomWord = lyrics => {
     let words = lyrics.split(" ");
+
+    //filter words shorter than 5 letters
+    words = words.filter( w => w.length > 5);
     let randomIndex = Math.floor(Math.random() * words.length)
     return words[randomIndex];
   }
@@ -159,7 +173,7 @@ class Welcome extends Component {
   render () {
     return (
         <div>
-          <h3>Category Search:  <input className="category-search" type="text" value={this.state.category} onChange={this.handleCategoryChange}/> <input className="button" type="button" onClick={this.fetchTracks} value="Search"/> </h3>
+          <h3>Category Search:  <input className="category-search" type="text" value={this.state.category} onChange={this.handleCategoryChange}/> <input className="button" type="button" onClick={() => this.fetchTracks(2)} value="Search"/> </h3>
           <div className="song-grid">
             {this.state.trackList.map( (item, index) => {
               return (
