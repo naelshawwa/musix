@@ -4,4 +4,4 @@ Documentation: https://developer.musixmatch.com/
 
 Instructions:
 - npm install
-- npm run dev
+- npm start
